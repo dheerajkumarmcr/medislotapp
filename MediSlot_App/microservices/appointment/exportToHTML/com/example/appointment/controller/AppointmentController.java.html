@@ -1,0 +1,104 @@
+<html>
+<head>
+<title>AppointmentController.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #6aab73;}
+</style>
+</head>
+<body bgcolor="#1e1f22">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+AppointmentController.java</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span><span class="s1">com</span><span class="s2">.</span><span class="s1">example</span><span class="s2">.</span><span class="s1">appointment</span><span class="s2">.</span><span class="s1">controller</span><span class="s2">;</span>
+
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">example</span><span class="s2">.</span><span class="s1">appointment</span><span class="s2">.</span><span class="s1">model</span><span class="s2">.</span><span class="s1">Appointment</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">com</span><span class="s2">.</span><span class="s1">example</span><span class="s2">.</span><span class="s1">appointment</span><span class="s2">.</span><span class="s1">repository</span><span class="s2">.</span><span class="s1">AppointmentRepository</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">org</span><span class="s2">.</span><span class="s1">springframework</span><span class="s2">.</span><span class="s1">beans</span><span class="s2">.</span><span class="s1">factory</span><span class="s2">.</span><span class="s1">annotation</span><span class="s2">.</span><span class="s1">Autowired</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">org</span><span class="s2">.</span><span class="s1">springframework</span><span class="s2">.</span><span class="s1">http</span><span class="s2">.</span><span class="s1">HttpStatus</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">org</span><span class="s2">.</span><span class="s1">springframework</span><span class="s2">.</span><span class="s1">http</span><span class="s2">.</span><span class="s1">ResponseEntity</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">org</span><span class="s2">.</span><span class="s1">springframework</span><span class="s2">.</span><span class="s1">web</span><span class="s2">.</span><span class="s1">bind</span><span class="s2">.</span><span class="s1">annotation</span><span class="s2">.*;</span>
+
+<span class="s0">import </span><span class="s1">java</span><span class="s2">.</span><span class="s1">util</span><span class="s2">.</span><span class="s1">ArrayList</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">java</span><span class="s2">.</span><span class="s1">util</span><span class="s2">.</span><span class="s1">List</span><span class="s2">;</span>
+<span class="s0">import </span><span class="s1">java</span><span class="s2">.</span><span class="s1">util</span><span class="s2">.</span><span class="s1">Optional</span><span class="s2">;</span>
+
+<span class="s1">@RestController</span>
+<span class="s1">@RequestMapping</span><span class="s2">(</span><span class="s3">&quot;/api&quot;</span><span class="s2">)</span>
+<span class="s1">@CrossOrigin</span><span class="s2">(</span><span class="s3">&quot;*&quot;</span><span class="s2">)</span>
+<span class="s0">public class </span><span class="s1">AppointmentController </span><span class="s2">{</span>
+    <span class="s1">@Autowired</span>
+    <span class="s1">AppointmentRepository appointmentRepository</span><span class="s2">;</span>
+
+    <span class="s1">@PostMapping</span><span class="s2">(</span><span class="s3">&quot;/appointment&quot;</span><span class="s2">)</span>
+    <span class="s0">public </span><span class="s1">ResponseEntity</span><span class="s2">&lt;</span><span class="s1">Appointment</span><span class="s2">&gt; </span><span class="s1">createAppointment</span><span class="s2">(</span><span class="s1">@RequestBody Appointment appointment</span><span class="s2">) {</span>
+        <span class="s0">try </span><span class="s2">{</span>
+            <span class="s1">Appointment _appointment </span><span class="s2">= </span><span class="s1">appointmentRepository</span><span class="s2">.</span><span class="s1">save</span><span class="s2">(</span><span class="s0">new </span><span class="s1">Appointment</span><span class="s2">( </span><span class="s1">appointment</span><span class="s2">.</span><span class="s1">getAppointment_doctor</span><span class="s2">(), </span><span class="s1">appointment</span><span class="s2">.</span><span class="s1">getAppointment_patient</span><span class="s2">(), </span><span class="s1">appointment</span><span class="s2">.</span><span class="s1">getAppointment_slot</span><span class="s2">()));</span>
+            <span class="s0">return new </span><span class="s1">ResponseEntity</span><span class="s2">&lt;&gt;(</span><span class="s1">_appointment</span><span class="s2">, </span><span class="s1">HttpStatus</span><span class="s2">.</span><span class="s1">CREATED</span><span class="s2">);</span>
+        <span class="s2">} </span><span class="s0">catch </span><span class="s2">(</span><span class="s1">Exception ex</span><span class="s2">) {</span>
+            <span class="s0">return new </span><span class="s1">ResponseEntity</span><span class="s2">&lt;&gt;(</span><span class="s0">null</span><span class="s2">, </span><span class="s1">HttpStatus</span><span class="s2">.</span><span class="s1">INTERNAL_SERVER_ERROR</span><span class="s2">);</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s1">@GetMapping</span><span class="s2">(</span><span class="s3">&quot;/appointments&quot;</span><span class="s2">)</span>
+    <span class="s0">public </span><span class="s1">ResponseEntity</span><span class="s2">&lt;</span><span class="s1">List</span><span class="s2">&lt;</span><span class="s1">Appointment</span><span class="s2">&gt;&gt; </span><span class="s1">getAllAppointments</span><span class="s2">() {</span>
+        <span class="s0">try </span><span class="s2">{</span>
+            <span class="s1">List</span><span class="s2">&lt;</span><span class="s1">Appointment</span><span class="s2">&gt; </span><span class="s1">appointments </span><span class="s2">= </span><span class="s0">new </span><span class="s1">ArrayList</span><span class="s2">&lt;</span><span class="s1">Appointment</span><span class="s2">&gt;();</span>
+            <span class="s1">appointmentRepository</span><span class="s2">.</span><span class="s1">findAll</span><span class="s2">().</span><span class="s1">forEach</span><span class="s2">(</span><span class="s1">appointments::add</span><span class="s2">);</span>
+            <span class="s0">if</span><span class="s2">(</span><span class="s1">appointments</span><span class="s2">.</span><span class="s1">isEmpty</span><span class="s2">()) {</span>
+                <span class="s0">return new </span><span class="s1">ResponseEntity</span><span class="s2">&lt;&gt;(</span><span class="s1">HttpStatus</span><span class="s2">.</span><span class="s1">NO_CONTENT</span><span class="s2">);</span>
+            <span class="s2">}</span>
+            <span class="s0">return new </span><span class="s1">ResponseEntity</span><span class="s2">&lt;&gt;(</span><span class="s1">appointments</span><span class="s2">, </span><span class="s1">HttpStatus</span><span class="s2">.</span><span class="s1">OK</span><span class="s2">);</span>
+        <span class="s2">}</span><span class="s0">catch</span><span class="s2">(</span><span class="s1">Exception ex</span><span class="s2">) {</span>
+            <span class="s0">return new </span><span class="s1">ResponseEntity</span><span class="s2">&lt;&gt;(</span><span class="s0">null</span><span class="s2">, </span><span class="s1">HttpStatus</span><span class="s2">.</span><span class="s1">INTERNAL_SERVER_ERROR</span><span class="s2">);</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s1">@GetMapping</span><span class="s2">(</span><span class="s3">&quot;/appointment/{appointment_id}&quot;</span><span class="s2">)</span>
+    <span class="s0">public </span><span class="s1">ResponseEntity</span><span class="s2">&lt;</span><span class="s1">Appointment</span><span class="s2">&gt; </span><span class="s1">getAppointmentById</span><span class="s2">(</span><span class="s1">@PathVariable</span><span class="s2">(</span><span class="s3">&quot;appointment_id&quot;</span><span class="s2">) </span><span class="s1">Long appointment_id</span><span class="s2">) {</span>
+        <span class="s0">try </span><span class="s2">{</span>
+            <span class="s1">Optional</span><span class="s2">&lt;</span><span class="s1">Appointment</span><span class="s2">&gt; </span><span class="s1">appointmentData </span><span class="s2">= </span><span class="s1">appointmentRepository</span><span class="s2">.</span><span class="s1">findById</span><span class="s2">(</span><span class="s1">appointment_id</span><span class="s2">);</span>
+            <span class="s0">return </span><span class="s1">appointmentData</span><span class="s2">.</span><span class="s1">map</span><span class="s2">(</span><span class="s1">appointment  -&gt; </span><span class="s0">new </span><span class="s1">ResponseEntity</span><span class="s2">&lt;&gt;(</span><span class="s1">appointment</span><span class="s2">, </span><span class="s1">HttpStatus</span><span class="s2">.</span><span class="s1">OK</span><span class="s2">))</span>
+                    <span class="s2">.</span><span class="s1">orElseGet</span><span class="s2">(() </span><span class="s1">-&gt; </span><span class="s0">new </span><span class="s1">ResponseEntity</span><span class="s2">&lt;&gt;(</span><span class="s1">HttpStatus</span><span class="s2">.</span><span class="s1">NOT_FOUND</span><span class="s2">));</span>
+        <span class="s2">} </span><span class="s0">catch </span><span class="s2">(</span><span class="s1">Exception ex</span><span class="s2">) {</span>
+            <span class="s0">return new </span><span class="s1">ResponseEntity</span><span class="s2">&lt;&gt;(</span><span class="s0">null</span><span class="s2">, </span><span class="s1">HttpStatus</span><span class="s2">.</span><span class="s1">INTERNAL_SERVER_ERROR</span><span class="s2">);</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s1">@PutMapping</span><span class="s2">(</span><span class="s3">&quot;/appointment/{appointment_id}&quot;</span><span class="s2">)</span>
+    <span class="s0">public </span><span class="s1">ResponseEntity</span><span class="s2">&lt;</span><span class="s1">Appointment</span><span class="s2">&gt; </span><span class="s1">updateAppointment</span><span class="s2">(</span><span class="s1">@PathVariable</span><span class="s2">(</span><span class="s3">&quot;appointment_id&quot;</span><span class="s2">) </span><span class="s1">Long appointment_id</span><span class="s2">, </span><span class="s1">@RequestBody Appointment appointment</span><span class="s2">) {</span>
+        <span class="s1">Optional</span><span class="s2">&lt;</span><span class="s1">Appointment</span><span class="s2">&gt; </span><span class="s1">appointmentData </span><span class="s2">= </span><span class="s1">appointmentRepository</span><span class="s2">.</span><span class="s1">findById</span><span class="s2">(</span><span class="s1">appointment_id</span><span class="s2">);</span>
+        <span class="s0">if </span><span class="s2">(</span><span class="s1">appointmentData</span><span class="s2">.</span><span class="s1">isPresent</span><span class="s2">()) {</span>
+            <span class="s1">Appointment _appointment </span><span class="s2">= </span><span class="s1">appointmentData</span><span class="s2">.</span><span class="s1">get</span><span class="s2">();</span>
+
+            <span class="s1">_appointment</span><span class="s2">.</span><span class="s1">setAppointment_doctor</span><span class="s2">(</span><span class="s1">appointment</span><span class="s2">.</span><span class="s1">getAppointment_doctor</span><span class="s2">());</span>
+            <span class="s1">_appointment</span><span class="s2">.</span><span class="s1">setAppointment_patient</span><span class="s2">(</span><span class="s1">appointment</span><span class="s2">.</span><span class="s1">getAppointment_patient</span><span class="s2">());</span>
+            <span class="s1">_appointment</span><span class="s2">.</span><span class="s1">setAppointment_slot</span><span class="s2">(</span><span class="s1">appointment</span><span class="s2">.</span><span class="s1">getAppointment_slot</span><span class="s2">());</span>
+
+
+            <span class="s0">return new </span><span class="s1">ResponseEntity</span><span class="s2">&lt;&gt;(</span><span class="s1">appointmentRepository</span><span class="s2">.</span><span class="s1">save</span><span class="s2">(</span><span class="s1">_appointment</span><span class="s2">), </span><span class="s1">HttpStatus</span><span class="s2">.</span><span class="s1">OK</span><span class="s2">);</span>
+        <span class="s2">} </span><span class="s0">else </span><span class="s2">{</span>
+            <span class="s0">return new </span><span class="s1">ResponseEntity</span><span class="s2">&lt;&gt;(</span><span class="s0">null</span><span class="s2">,</span><span class="s1">HttpStatus</span><span class="s2">.</span><span class="s1">NOT_FOUND</span><span class="s2">);</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+    <span class="s1">@DeleteMapping</span><span class="s2">(</span><span class="s3">&quot;/appointment/{appointment_id}&quot;</span><span class="s2">)</span>
+    <span class="s0">public </span><span class="s1">ResponseEntity</span><span class="s2">&lt;</span><span class="s1">HttpStatus</span><span class="s2">&gt; </span><span class="s1">deleteAppointment</span><span class="s2">(</span><span class="s1">@PathVariable</span><span class="s2">(</span><span class="s3">&quot;appointment_id&quot;</span><span class="s2">) </span><span class="s1">Long appointment_id</span><span class="s2">) {</span>
+        <span class="s0">try </span><span class="s2">{</span>
+            <span class="s1">appointmentRepository</span><span class="s2">.</span><span class="s1">deleteById</span><span class="s2">(</span><span class="s1">appointment_id</span><span class="s2">);</span>
+            <span class="s0">return new </span><span class="s1">ResponseEntity</span><span class="s2">&lt;&gt;(</span><span class="s1">HttpStatus</span><span class="s2">.</span><span class="s1">NO_CONTENT</span><span class="s2">);</span>
+        <span class="s2">} </span><span class="s0">catch </span><span class="s2">(</span><span class="s1">Exception ex</span><span class="s2">) {</span>
+            <span class="s0">return new </span><span class="s1">ResponseEntity</span><span class="s2">&lt;&gt;(</span><span class="s0">null</span><span class="s2">, </span><span class="s1">HttpStatus</span><span class="s2">.</span><span class="s1">INTERNAL_SERVER_ERROR</span><span class="s2">);</span>
+        <span class="s2">}</span>
+    <span class="s2">}</span>
+
+
+<span class="s2">}</span>
+</pre>
+</body>
+</html>

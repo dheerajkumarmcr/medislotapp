@@ -1,0 +1,47 @@
+server:
+  port: 3000
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    hostname: localhost
+
+spring:
+  application:
+    name: API-GATEWAY-SERVICE
+  cloud:
+    gateway:
+      routes:
+        - id: report
+          uri: http://localhost:8081/
+          predicates:
+            - Path=/report/**
+
+        - id: prescription
+          uri: http://localhost:8089/
+          predicates:
+            - Path=/prescription/**
+
+        - id: patient
+          uri: http://localhost:8087/
+          predicates:
+            - Path=/patient/**
+
+        - id: doctor
+          uri: http://localhost:8083/
+          predicates:
+            - Path=/doctor/**
+
+        - id: feedback
+          uri: http://localhost:8099/
+          predicates:
+            - Path=/feedback/**
+
+        - id: appointment
+          uri: http://localhost:8084/
+          predicates:
+            - Path=/appointment/**
