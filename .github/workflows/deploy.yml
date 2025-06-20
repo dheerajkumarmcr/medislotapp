@@ -83,7 +83,10 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    
+    outputs:
+      database_url: ${{ steps.get_db_url.outputs.database_url }}
+      project_id: ${{ steps.create_project.outputs.project_id }}
+      db_service_id: ${{ steps.add_db.outputs.db_service_id }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -95,33 +98,41 @@ jobs:
       run: railway login --token ${{ secrets.RAILWAY_TOKEN }}
 
     - name: Create Railway Project
+      id: create_project
       run: |
-        # Create project if it doesn't exist
         PROJECT_NAME="MediSlot-Backend"
         PROJECT_ID=$(railway project list --json | jq -r ".[] | select(.name == \"$PROJECT_NAME\") | .id")
-        
         if [ -z "$PROJECT_ID" ]; then
           echo "Creating new Railway project: $PROJECT_NAME"
           PROJECT_ID=$(railway project create --name "$PROJECT_NAME" --json | jq -r '.id')
         else
           echo "Using existing Railway project: $PROJECT_ID"
         fi
-        
+        echo "::set-output name=project_id::$PROJECT_ID"
         echo "PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
         echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
 
     - name: Add PostgreSQL Database
+      id: add_db
       run: |
-        # Add PostgreSQL database service
-        DB_SERVICE_ID=$(railway service create --project $PROJECT_ID --name "Postgres" --type "postgresql" --json | jq -r '.id')
+        DB_SERVICE_ID=$(railway service create --project ${{ steps.create_project.outputs.project_id }} --name "Postgres" --type "postgresql" --json | jq -r '.id')
+        echo "::set-output name=db_service_id::$DB_SERVICE_ID"
         echo "DB_SERVICE_ID=$DB_SERVICE_ID" >> $GITHUB_ENV
         echo "Database service created: $DB_SERVICE_ID"
+
+    - name: Get Railway Postgres Connection String
+      id: get_db_url
+      run: |
+        DB_URL=$(railway variables get DATABASE_URL --service ${{ steps.add_db.outputs.db_service_id }} --project ${{ steps.create_project.outputs.project_id }})
+        echo "::set-output name=database_url::$DB_URL"
+        echo "DATABASE_URL=$DB_URL" >> $GITHUB_ENV
 
   deploy-service-registry:
     needs: [build-and-test, setup-railway-project]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    
+    outputs:
+      service_registry_url: ${{ steps.deploy_registry.outputs.service_registry_url }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -133,27 +144,22 @@ jobs:
       run: railway login --token ${{ secrets.RAILWAY_TOKEN }}
 
     - name: Deploy Service Registry
+      id: deploy_registry
       run: |
-        # Create service registry service
-        SERVICE_ID=$(railway service create --project ${{ env.PROJECT_ID }} --name "service-registry" --json | jq -r '.id')
-        
-        # Set environment variables
+        SERVICE_ID=$(railway service create --project ${{ needs.setup-railway-project.outputs.project_id }} --name "service-registry" --json | jq -r '.id')
         railway variables set --service $SERVICE_ID SPRING_PROFILES_ACTIVE=prod
         railway variables set --service $SERVICE_ID PORT=8761
-        
-        # Deploy the service
         railway up --service $SERVICE_ID --path ./MediSlot_App/microservices/service-registry
-        
-        # Get the service URL
         SERVICE_URL=$(railway service show --service $SERVICE_ID --json | jq -r '.url')
-        echo "SERVICE_REGISTRY_URL=$SERVICE_URL" >> $GITHUB_ENV
+        echo "::set-output name=service_registry_url::$SERVICE_URL"
         echo "Service Registry deployed: $SERVICE_URL"
 
   deploy-api-gateway:
     needs: [build-and-test, setup-railway-project, deploy-service-registry]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    
+    outputs:
+      api_gateway_url: ${{ steps.deploy_gateway.outputs.api_gateway_url }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -165,21 +171,15 @@ jobs:
       run: railway login --token ${{ secrets.RAILWAY_TOKEN }}
 
     - name: Deploy API Gateway
+      id: deploy_gateway
       run: |
-        # Create API gateway service
-        SERVICE_ID=$(railway service create --project ${{ env.PROJECT_ID }} --name "api-gateway" --json | jq -r '.id')
-        
-        # Set environment variables
+        SERVICE_ID=$(railway service create --project ${{ needs.setup-railway-project.outputs.project_id }} --name "api-gateway" --json | jq -r '.id')
         railway variables set --service $SERVICE_ID SPRING_PROFILES_ACTIVE=prod
-        railway variables set --service $SERVICE_ID EUREKA_URL=https://${{ env.SERVICE_REGISTRY_URL }}/eureka/
+        railway variables set --service $SERVICE_ID EUREKA_URL=https://${{ needs.deploy-service-registry.outputs.service_registry_url }}/eureka/
         railway variables set --service $SERVICE_ID FRONTEND_URL=https://${{ secrets.VERCEL_FRONTEND_URL }}.vercel.app
-        
-        # Deploy the service
         railway up --service $SERVICE_ID --path ./MediSlot_App/microservices/api-gateway
-        
-        # Get the service URL
         SERVICE_URL=$(railway service show --service $SERVICE_ID --json | jq -r '.url')
-        echo "API_GATEWAY_URL=$SERVICE_URL" >> $GITHUB_ENV
+        echo "::set-output name=api_gateway_url::$SERVICE_URL"
         echo "API Gateway deployed: $SERVICE_URL"
 
   deploy-microservices:
@@ -201,8 +201,11 @@ jobs:
       run: railway login --token ${{ secrets.RAILWAY_TOKEN }}
 
     - name: Deploy ${{ matrix.service }} Service
+      env:
+        DATABASE_URL: ${{ needs.setup-railway-project.outputs.database_url }}
+        PROJECT_ID: ${{ needs.setup-railway-project.outputs.project_id }}
+        SERVICE_REGISTRY_URL: ${{ needs.deploy-service-registry.outputs.service_registry_url }}
       run: |
-        # Determine service path
         if [ "${{ matrix.service }}" = "feedback" ]; then
           SERVICE_PATH="./MediSlot_App/microservices/feedback/feedback"
         elif [ "${{ matrix.service }}" = "prescription" ]; then
@@ -210,18 +213,11 @@ jobs:
         else
           SERVICE_PATH="./MediSlot_App/microservices/${{ matrix.service }}"
         fi
-        
-        # Create service
-        SERVICE_ID=$(railway service create --project ${{ env.PROJECT_ID }} --name "${{ matrix.service }}-service" --json | jq -r '.id')
-        
-        # Set environment variables
+        SERVICE_ID=$(railway service create --project $PROJECT_ID --name "${{ matrix.service }}-service" --json | jq -r '.id')
         railway variables set --service $SERVICE_ID SPRING_PROFILES_ACTIVE=prod
-        railway variables set --service $SERVICE_ID EUREKA_URL=https://${{ env.SERVICE_REGISTRY_URL }}/eureka/
-        railway variables set --service $SERVICE_ID DATABASE_URL='${{ Postgres.DATABASE_URL }}'
-        
-        # Deploy the service
+        railway variables set --service $SERVICE_ID EUREKA_URL=https://$SERVICE_REGISTRY_URL/eureka/
+        railway variables set --service $SERVICE_ID DATABASE_URL="$DATABASE_URL"
         railway up --service $SERVICE_ID --path $SERVICE_PATH
-        
         echo "${{ matrix.service }} service deployed successfully"
 
   deploy-frontend:
@@ -244,15 +240,12 @@ jobs:
       run: npm install --global vercel@latest
 
     - name: Deploy to Vercel
+      env:
+        API_GATEWAY_URL: ${{ needs.deploy-api-gateway.outputs.api_gateway_url }}
       run: |
         cd MediSlot_App/UI/project
-        
-        # Set environment variables for build
-        echo "VITE_API_BASE_URL=https://${{ env.API_GATEWAY_URL }}" >> .env
-        
-        # Deploy to Vercel
+        echo "VITE_API_BASE_URL=https://$API_GATEWAY_URL" >> .env
         vercel --prod --token ${{ secrets.VERCEL_TOKEN }} --yes
-        
         echo "Frontend deployed successfully"
 
   health-check:
@@ -263,12 +256,12 @@ jobs:
     steps:
     - name: Check Service Registry Health
       run: |
-        curl -f https://${{ env.SERVICE_REGISTRY_URL }}/actuator/health || exit 1
+        curl -f https://${{ needs.deploy-service-registry.outputs.service_registry_url }}/actuator/health || exit 1
         echo "Service Registry is healthy"
 
     - name: Check API Gateway Health
       run: |
-        curl -f https://${{ env.API_GATEWAY_URL }}/actuator/health || exit 1
+        curl -f https://${{ needs.deploy-api-gateway.outputs.api_gateway_url }}/actuator/health || exit 1
         echo "API Gateway is healthy"
 
     - name: Check Frontend
@@ -280,6 +273,6 @@ jobs:
       run: |
         echo "🎉 Deployment Complete!"
         echo "Frontend: https://${{ secrets.VERCEL_FRONTEND_URL }}.vercel.app"
-        echo "API Gateway: https://${{ env.API_GATEWAY_URL }}"
-        echo "Service Registry: https://${{ env.SERVICE_REGISTRY_URL }}"
+        echo "API Gateway: https://${{ needs.deploy-api-gateway.outputs.api_gateway_url }}"
+        echo "Service Registry: https://${{ needs.deploy-service-registry.outputs.service_registry_url }}"
         echo "Database: Managed in Railway" 
