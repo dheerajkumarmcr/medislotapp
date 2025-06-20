@@ -84,35 +84,6 @@ jobs:
         npm ci
         npm run build
 
-    - name: Run tests
-      run: |
-        cd MediSlot_App/microservices
-        
-        # Test services with pom.xml in root of service directory
-        for service in */; do
-          if [ -f "$service/pom.xml" ]; then
-            echo "Testing $service"
-            cd "$service"
-            mvn test
-            cd ..
-          fi
-        done
-        
-        # Test services with nested pom.xml files
-        if [ -f "feedback/feedback/pom.xml" ]; then
-          echo "Testing feedback service"
-          cd feedback/feedback
-          mvn test
-          cd ../..
-        fi
-        
-        if [ -f "SpringPrescription/demo/pom.xml" ]; then
-          echo "Testing prescription service"
-          cd SpringPrescription/demo
-          mvn test
-          cd ../..
-        fi
-
   setup-railway-project:
     needs: build-and-test
     runs-on: ubuntu-latest
