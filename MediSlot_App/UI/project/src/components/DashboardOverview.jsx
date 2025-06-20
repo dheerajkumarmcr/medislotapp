@@ -1,65 +1,77 @@
-import { Row, Col, Card } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Card, Row, Col, Container } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { animationDefaultOptions } from '../lib/utils';
 import Lottie from 'react-lottie';
+import { API_ENDPOINTS } from '../config/api';
 
 const DashboardOverview = () => {
-  const [stats, setStats] = useState([
-    { title: 'Total Doctors', value: '0', icon: 'bi-person-badge', color: 'primary' },
-    { title: 'Total Appointments', value: '0', icon: 'bi-calendar-check', color: 'success' },
-    { title: 'Total Patients', value: '0', icon: 'bi-people', color: 'info' },
-    { title: 'Total Reports', value: '0', icon: 'bi-file-earmark-text', color: 'warning' },
-    { title: 'Total Feedback', value: '0', icon: 'bi-chat-square-text', color: 'secondary' },
-    { title: 'Prescriptions Written', value: '0', icon: 'bi-prescription', color: 'danger' },
-  ]);
+  const [stats, setStats] = useState({
+    doctors: 0,
+    appointments: 0,
+    patients: 0,
+    reports: 0,
+    feedbacks: 0,
+    prescriptions: 0
+  });
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchStats = async () => {
       try {
-        // Fetch all data in parallel
-        const [doctorsRes, appointmentsRes, patientsRes, reportsRes, feedbackRes, prescriptionsRes] =
-          await Promise.all([
-            fetch('http://localhost:8083/api/doctors'),
-            fetch('http://localhost:8084/api/appointments'),
-            fetch('http://localhost:8087/api/patients'),
-            fetch('http://localhost:8081/api/reports'),
-            fetch('http://localhost:8099/api/feedbacks'),
-            fetch('http://localhost:8089/api/prescriptions')
-          ]);
-
-        const [doctors, appointments, patients, reports, feedbacks, prescriptions] =
-          await Promise.all([
-            doctorsRes.json(),
-            appointmentsRes.json(),
-            patientsRes.json(),
-            reportsRes.json(),
-            feedbackRes.json(),
-            prescriptionsRes.json()
-          ]);
-
-        setStats([
-          { ...stats[0], value: doctors.length.toString() },
-          { ...stats[1], value: appointments.length.toString() },
-          { ...stats[2], value: patients.length.toString() },
-          { ...stats[3], value: reports.length.toString() }, // Total reports count
-          { ...stats[4], value: feedbacks.length.toString() },
-          { ...stats[5], value: prescriptions.length.toString() },
+        const [
+          doctorsRes,
+          appointmentsRes,
+          patientsRes,
+          reportsRes,
+          feedbacksRes,
+          prescriptionsRes
+        ] = await Promise.all([
+          fetch(API_ENDPOINTS.DOCTORS),
+          fetch(API_ENDPOINTS.APPOINTMENTS),
+          fetch(API_ENDPOINTS.PATIENTS),
+          fetch(API_ENDPOINTS.REPORTS),
+          fetch(API_ENDPOINTS.FEEDBACKS),
+          fetch(API_ENDPOINTS.PRESCRIPTIONS)
         ]);
+
+        const doctors = await doctorsRes.json();
+        const appointments = await appointmentsRes.json();
+        const patients = await patientsRes.json();
+        const reports = await reportsRes.json();
+        const feedbacks = await feedbacksRes.json();
+        const prescriptions = await prescriptionsRes.json();
+
+        setStats({
+          doctors: doctors.length || 0,
+          appointments: appointments.length || 0,
+          patients: patients.length || 0,
+          reports: reports.length || 0,
+          feedbacks: feedbacks.length || 0,
+          prescriptions: prescriptions.length || 0
+        });
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        console.error('Error fetching stats:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchStats();
   }, []);
 
+  const statCards = [
+    { title: 'Total Doctors', value: stats.doctors, color: 'primary' },
+    { title: 'Total Appointments', value: stats.appointments, color: 'success' },
+    { title: 'Total Patients', value: stats.patients, color: 'info' },
+    { title: 'Total Reports', value: stats.reports, color: 'warning' },
+    { title: 'Total Feedback', value: stats.feedbacks, color: 'secondary' },
+    { title: 'Total Prescriptions', value: stats.prescriptions, color: 'dark' }
+  ];
+
   return (
-    <div>
+    <Container fluid>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="mb-0">Dashboard Overview</h2>
         <small className="text-muted">
@@ -77,22 +89,12 @@ const DashboardOverview = () => {
       ) : (
         <>
           <Row>
-            {stats.map((stat, index) => (
-              <Col md={6} lg={4} key={index} className="mb-4">
-                <Card className="h-100 border-0 shadow-sm">
-                  <Card.Body className="d-flex align-items-center">
-                    <div
-                      className={`rounded-circle bg-${stat.color} bg-opacity-10 p-3 me-3`}
-                    >
-                      <i
-                        className={`${stat.icon} text-${stat.color}`}
-                        style={{ fontSize: '1.5rem' }}
-                      ></i>
-                    </div>
-                    <div>
-                      <h3 className="mb-1 fw-bold">{stat.value}</h3>
-                      <p className="mb-0 text-muted">{stat.title}</p>
-                    </div>
+            {statCards.map((card, index) => (
+              <Col key={index} md={4} lg={2} className="mb-3">
+                <Card className={`text-white bg-${card.color}`}>
+                  <Card.Body>
+                    <Card.Title>{card.title}</Card.Title>
+                    <Card.Text className="h2">{card.value}</Card.Text>
                   </Card.Body>
                 </Card>
               </Col>
@@ -143,7 +145,7 @@ const DashboardOverview = () => {
           </Row>
         </>
       )}
-    </div>
+    </Container>
   );
 };
 
