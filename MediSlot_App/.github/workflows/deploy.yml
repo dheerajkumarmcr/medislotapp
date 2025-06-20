@@ -5,14 +5,25 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  # Disable GitHub Pages automatic deployment
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  disable-github-pages:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Disable GitHub Pages
+      run: |
+        echo "Ensuring GitHub Pages is disabled for this repository"
+        echo "This deployment uses Railway and Vercel instead of GitHub Pages"
+
   build-and-test:
     runs-on: ubuntu-latest
+    needs: disable-github-pages
     
     steps:
     - name: Checkout code
