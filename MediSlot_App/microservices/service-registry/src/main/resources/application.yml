@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: service-registry
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:prod}
+
+server:
+  port: ${PORT:8761}
+
+eureka:
+  instance:
+    hostname: ${EUREKA_HOSTNAME:localhost}
+    prefer-ip-address: true
+  client:
+    fetch-registry: false
+    register-with-eureka: false
+    service-url:
+      defaultZone: http://${EUREKA_HOSTNAME:localhost}:${PORT:8761}/eureka/
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  cloud:
+    discovery:
+      enabled: true
+
+eureka:
+  instance:
+    hostname: ${EUREKA_HOSTNAME}
+    prefer-ip-address: true
+  client:
+    fetch-registry: false
+    register-with-eureka: false 

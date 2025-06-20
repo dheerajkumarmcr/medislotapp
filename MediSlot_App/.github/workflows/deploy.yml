@@ -1,0 +1,133 @@
+name: Deploy MediSlot Application
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'MediSlot_App/UI/project/package-lock.json'
+
+    - name: Build and test microservices
+      run: |
+        cd MediSlot_App/microservices
+        for service in */; do
+          if [ -f "$service/pom.xml" ]; then
+            echo "Building $service"
+            cd "$service"
+            mvn clean package -DskipTests
+            cd ..
+          fi
+        done
+
+    - name: Build frontend
+      run: |
+        cd MediSlot_App/UI/project
+        npm ci
+        npm run build
+
+    - name: Run tests
+      run: |
+        cd MediSlot_App/microservices
+        for service in */; do
+          if [ -f "$service/pom.xml" ]; then
+            echo "Testing $service"
+            cd "$service"
+            mvn test
+            cd ..
+          fi
+        done
+
+  deploy-frontend:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'MediSlot_App/UI/project/package-lock.json'
+
+    - name: Install Vercel CLI
+      run: npm install --global vercel@latest
+
+    - name: Deploy to Vercel
+      run: |
+        cd MediSlot_App/UI/project
+        vercel --prod --token ${{ secrets.VERCEL_TOKEN }} --yes
+      env:
+        VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  deploy-service-registry:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Deploy to Railway
+      uses: bervProject/railway-deploy@v1.0.0
+      with:
+        railway_token: ${{ secrets.RAILWAY_TOKEN }}
+        service: service-registry
+        path: ./MediSlot_App/microservices/service-registry
+
+  deploy-api-gateway:
+    needs: [build-and-test, deploy-service-registry]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Deploy to Railway
+      uses: bervProject/railway-deploy@v1.0.0
+      with:
+        railway_token: ${{ secrets.RAILWAY_TOKEN }}
+        service: api-gateway
+        path: ./MediSlot_App/microservices/api-gateway
+
+  deploy-microservices:
+    needs: [build-and-test, deploy-service-registry]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    strategy:
+      matrix:
+        service: [appointment, doctor, patient, feedback, report, prescription]
+    
+    steps:
+    - name: Deploy ${{ matrix.service }} to Railway
+      uses: bervProject/railway-deploy@v1.0.0
+      with:
+        railway_token: ${{ secrets.RAILWAY_TOKEN }}
+        service: ${{ matrix.service }}-service
+        path: ./MediSlot_App/microservices/${{ matrix.service }} 

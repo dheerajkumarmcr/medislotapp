@@ -1,47 +1,74 @@
 server:
-  port: 3000
+  port: ${PORT:8080}
 
 eureka:
   client:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
   instance:
     hostname: localhost
+    prefer-ip-address: true
 
 spring:
   application:
-    name: API-GATEWAY-SERVICE
+    name: api-gateway
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:prod}
   cloud:
     gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
       routes:
-        - id: report
-          uri: http://localhost:8081/
+        - id: appointment-service
+          uri: lb://appointment-service
           predicates:
-            - Path=/report/**
+            - Path=/api/appointments/**
+        - id: doctor-service
+          uri: lb://doctor-service
+          predicates:
+            - Path=/api/doctors/**
+        - id: patient-service
+          uri: lb://patient-service
+          predicates:
+            - Path=/api/patients/**
+        - id: feedback-service
+          uri: lb://feedback-service
+          predicates:
+            - Path=/api/feedback/**
+        - id: report-service
+          uri: lb://report-service
+          predicates:
+            - Path=/api/reports/**
+        - id: prescription-service
+          uri: lb://prescription-service
+          predicates:
+            - Path=/api/prescriptions/**
+    loadbalancer:
+      ribbon:
+        enabled: false
 
-        - id: prescription
-          uri: http://localhost:8089/
-          predicates:
-            - Path=/prescription/**
-
-        - id: patient
-          uri: http://localhost:8087/
-          predicates:
-            - Path=/patient/**
-
-        - id: doctor
-          uri: http://localhost:8083/
-          predicates:
-            - Path=/doctor/**
-
-        - id: feedback
-          uri: http://localhost:8099/
-          predicates:
-            - Path=/feedback/**
-
-        - id: appointment
-          uri: http://localhost:8084/
-          predicates:
-            - Path=/appointment/**
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: 
+              - ${FRONTEND_URL:https://your-frontend-url.vercel.app}
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowed-headers:
+              - "*"
+            allow-credentials: true
