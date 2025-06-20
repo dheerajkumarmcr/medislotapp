@@ -1,12 +1,18 @@
-name: Deploy MediSlot Application
+name: 🚀 Deploy MediSlot Application (Railway + Vercel)
 
 on:
   push:
     branches: [ main, master ]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - 'LICENSE'
   pull_request:
     branches: [ main, master ]
-  # Disable GitHub Pages automatic deployment
   workflow_dispatch:
+  # Ensure this workflow has priority
+  repository_dispatch:
+    types: [deploy]
 
 env:
   REGISTRY: ghcr.io

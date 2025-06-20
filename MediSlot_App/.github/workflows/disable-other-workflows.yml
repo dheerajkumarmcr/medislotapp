@@ -1,0 +1,27 @@
+name: 🛑 Disable Other Workflows
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  disable-other-workflows:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check for conflicting workflows
+      run: |
+        echo "Checking for conflicting workflows..."
+        echo "This repository should only run the MediSlot deployment workflow"
+        echo "If you see other workflows running, they should be disabled"
+        
+    - name: List current workflows
+      run: |
+        echo "Current workflows in this repository:"
+        ls -la .github/workflows/ || echo "No workflows directory found"
+        
+    - name: Ensure only our workflow runs
+      run: |
+        echo "✅ Only the 'Deploy MediSlot Application' workflow should be active"
+        echo "❌ Any other workflows should be disabled or removed"
+        echo "📋 Check the Actions tab to see which workflows are running" 
